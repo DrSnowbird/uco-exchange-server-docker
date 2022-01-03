@@ -6,6 +6,7 @@ from datetime import date, datetime  # noqa: F401
 from typing import List, Dict  # noqa: F401
 
 from swagger_server.models.base_model_ import Model
+from swagger_server.models.rdf_data_format_type import RDFDataFormatType  # noqa: F401,E501
 from swagger_server import util
 
 
@@ -14,7 +15,7 @@ class UploadObjectType(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, id: str='unknown', organization: str='unknown', reference: str='', graph_uri: str='<http://uco.example.org/bookstore>', rdf_format: str='JSON-LD'):  # noqa: E501
+    def __init__(self, id: str='unknown', organization: str='unknown', reference: str='', graph_uri: str='<http://uco.example.org/bookstore>', rdf_format: List[RDFDataFormatType]=None):  # noqa: E501
         """UploadObjectType - a model defined in Swagger
 
         :param id: The id of this UploadObjectType.  # noqa: E501
@@ -26,14 +27,14 @@ class UploadObjectType(Model):
         :param graph_uri: The graph_uri of this UploadObjectType.  # noqa: E501
         :type graph_uri: str
         :param rdf_format: The rdf_format of this UploadObjectType.  # noqa: E501
-        :type rdf_format: str
+        :type rdf_format: List[RDFDataFormatType]
         """
         self.swagger_types = {
             'id': str,
             'organization': str,
             'reference': str,
             'graph_uri': str,
-            'rdf_format': str
+            'rdf_format': List[RDFDataFormatType]
         }
 
         self.attribute_map = {
@@ -159,30 +160,26 @@ class UploadObjectType(Model):
         self._graph_uri = graph_uri
 
     @property
-    def rdf_format(self) -> str:
+    def rdf_format(self) -> List[RDFDataFormatType]:
         """Gets the rdf_format of this UploadObjectType.
 
-        RDF graph format types, e.g., JSON-LD, RDF/XML, N3, Turtle.  # noqa: E501
+        the client applications' type of this batch of RDF data to be uploaded and validated for compliance, e.g., Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX. Note that parsing JSON-LD mostly is much more time-consuming and expensive in computing than other formats. This API supports other data formats, e.g., N3, RDF/XML, and TURTLE  # noqa: E501
 
         :return: The rdf_format of this UploadObjectType.
-        :rtype: str
+        :rtype: List[RDFDataFormatType]
         """
         return self._rdf_format
 
     @rdf_format.setter
-    def rdf_format(self, rdf_format: str):
+    def rdf_format(self, rdf_format: List[RDFDataFormatType]):
         """Sets the rdf_format of this UploadObjectType.
 
-        RDF graph format types, e.g., JSON-LD, RDF/XML, N3, Turtle.  # noqa: E501
+        the client applications' type of this batch of RDF data to be uploaded and validated for compliance, e.g., Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX. Note that parsing JSON-LD mostly is much more time-consuming and expensive in computing than other formats. This API supports other data formats, e.g., N3, RDF/XML, and TURTLE  # noqa: E501
 
         :param rdf_format: The rdf_format of this UploadObjectType.
-        :type rdf_format: str
+        :type rdf_format: List[RDFDataFormatType]
         """
-        allowed_values = ["JSON-LD", "RDF/XML", "N3", "TURTLE", "TRIG"]  # noqa: E501
-        if rdf_format not in allowed_values:
-            raise ValueError(
-                "Invalid value for `rdf_format` ({0}), must be one of {1}"
-                .format(rdf_format, allowed_values)
-            )
+        if rdf_format is None:
+            raise ValueError("Invalid value for `rdf_format`, must not be `None`")  # noqa: E501
 
         self._rdf_format = rdf_format

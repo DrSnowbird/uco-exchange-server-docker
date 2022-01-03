@@ -7,6 +7,10 @@ env | grep -i venv
 PYTHON_MAIN=${PYTHON_MAIN:-~/app}
 echo "PYTHON_MAIN=${PYTHON_MAIN}"
 
+export PATH=${PATH}:/${HOME}/.local/bin
+
+#pip install virtualenv virtualenvwrapper
+
 #########################################################################
 #### ---- Customization for multiple virtual python environment ---- ####
 ####      (most recommended approach and simple to switch venv)      ####
@@ -30,7 +34,7 @@ export VIRTUALENVWRAPPER_PYTHON=${PYTHON_EXE}
 export VIRTUALENVWRAPPER_VIRTUALENV=${VIRTUALENV_EXE}
 
 #### ---- no need if already source ---- ####
-source ${VIRTUALENVWRAPPER_SHELL}
+bash ${VIRTUALENVWRAPPER_SHELL}
 
 ################################################################################
 #### ---- Pre-load PIP modules for multiple virtual python environment ---- ####

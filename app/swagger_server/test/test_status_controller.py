@@ -21,7 +21,7 @@ class TestStatusController(BaseTestCase):
         query_string = [('access_token', AccessToken()),
                         ('user_id', 'userUUID-unknown')]
         response = self.client.open(
-            '/RS-API/RDF-Graph-Exchange/0.1.2/status',
+            '/RS-API/RDF-Graph-Exchange/0.1.3/status',
             method='GET',
             query_string=query_string)
         self.assert200(response,

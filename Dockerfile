@@ -25,7 +25,8 @@ COPY --chown=$USER:$USER ./app $HOME/app
 COPY --chown=$USER:$USER ./bin $HOME/bin
 RUN $HOME/bin/pre-load-virtualenv.sh && \
     if [ -s $HOME/app/requirements.txt ]; then \
-        pip install --no-cache-dir --user -r requirements.txt ; \
+        pip install --no-cache-dir -r requirements.txt ; \
+        pip install connexion[swagger-ui]; \
     fi; 
     
 #########################################
@@ -51,7 +52,7 @@ USER ${USER}
 #### ---- App: (Customization here) ---- ####
 #############################################
 #############################################
-RUN pip install --user connexion[swagger-ui]
+#RUN pip install --user connexion[swagger-ui]
 
 ######################
 #### (Test only) #####

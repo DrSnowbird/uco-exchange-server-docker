@@ -3,6 +3,8 @@
 # flake8: noqa
 from __future__ import absolute_import
 # import models into model package
+from swagger_server.models.access_control_type import AccessControlType
+from swagger_server.models.access_control_type_list import AccessControlTypeList
 from swagger_server.models.access_permission_type import AccessPermissionType
 from swagger_server.models.access_token import AccessToken
 from swagger_server.models.errors import Errors

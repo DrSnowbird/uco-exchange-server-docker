@@ -21,13 +21,13 @@ python3 -m swagger_server
 and open your browser to here:
 
 ```
-http://localhost:8080/RS-API/RDF-Graph-Exchange/0.1.2/ui/
+http://localhost:8080/RS-API/RDF-Graph-Exchange/0.1.3/ui/
 ```
 
 Your Swagger definition lives here:
 
 ```
-http://localhost:8080/RS-API/RDF-Graph-Exchange/0.1.2/swagger.json
+http://localhost:8080/RS-API/RDF-Graph-Exchange/0.1.3/swagger.json
 ```
 
 To launch the integration tests, use tox:

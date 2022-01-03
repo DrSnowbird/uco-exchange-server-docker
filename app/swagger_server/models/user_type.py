@@ -109,7 +109,7 @@ class UserType(Model):
     def user_id(self) -> str:
         """Gets the user_id of this UserType.
 
-        a non-UUID ()short) organization UID and it could be the same as user's email.  # noqa: E501
+        a non-UUID (short) organization UID and it could be the same as user's email.  # noqa: E501
 
         :return: The user_id of this UserType.
         :rtype: str
@@ -120,7 +120,7 @@ class UserType(Model):
     def user_id(self, user_id: str):
         """Sets the user_id of this UserType.
 
-        a non-UUID ()short) organization UID and it could be the same as user's email.  # noqa: E501
+        a non-UUID (short) organization UID and it could be the same as user's email.  # noqa: E501
 
         :param user_id: The user_id of this UserType.
         :type user_id: str

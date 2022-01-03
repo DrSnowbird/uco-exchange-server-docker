@@ -1,0 +1,1579 @@
+openapi: 3.0.0
+info:
+  version: 0.1.3
+  title: "RDF Graphs Sharing/Exhange Server API Specifications"
+  description:
+    "This is a RDF Graph Exhange Server REST API specifications to provide users to access (CRUD - create, retrieve, update, and delete) RDF Graph-compliant RDF resources. 
+    - Each user's RDF graph (RDF Graph-compliant) can be shared with other users to enable Federated SPARQL query if the aggregated user roles and permissions over the RDF graphs passing the Access Control validation. Otherwise, the access will be denied.
+    - The create operation can accept data source formats JSON-LD, RDF/XML, N3, or Turtle format for upload/create.
+    - It is up to the implementation to support multiple data source formats.
+    - The RDF Graph Exchange reference implementation will only support one of JSON-LD, N3, or Turtle formats."
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/RS-API/RDF-Graph-Exchange/0.1.3
+security: []
+paths:
+  /status:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    get:
+      summary: Server heartbeat operation
+      operationId: status
+      description: >-
+        This operation shows how to override the global security defined above,
+        as we want to open it up for all users.
+      tags:
+        - status
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+      security: []
+      responses:
+        200:
+          $ref: '#/components/responses/200'
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+
+  /api/graph/catalog:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    get:
+      summary: "Query the list of all the RDF graphs' names (URIs) and the response will be JSON format."
+      operationId: catalog
+      tags:
+        - graph
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: query
+          in: query
+          required: false
+          description: "Query GraphsSPARQL Query expression (max 1536). Note the common lowest limit for the entrie url is 2048 as the limit. The query SPARQL string must be url-encoded. The example below is not url-encoded to show the un-encoded SPARQL content."
+          schema:
+            type: string
+            maxLength: 256
+            nullable: true
+            default: ""
+            example: "
+                SELECT ?g 
+                WHERE {
+                  GRAPH ?g { ?s ?p ?o . }
+                }
+                "
+      security: []
+      responses:
+        200:
+          $ref: '#/components/responses/200ResponseGraphList'
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/access-control/create:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: upload and create a new RDF graph upload RDF graph data source
+      operationId: access-create
+      tags:
+        - access-control
+      security: []
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: graphURI
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 128
+            example: "<http://uco.example.org/bookStore>"
+            default: "<http://uco.example.org/bookstore>"
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: accessControl
+          in: query
+          required: true
+          description: "the access control record (object)"
+          schema:
+            type: string
+            nullable: false
+            #schema:
+            enum: [JSON-LD, TRIG, RDF/XML, N3, TURTLE]
+            example: JSON-LD
+            default: JSON-LD
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+      requestBody:
+        description: upload RDF data source
+        content:
+          application/text:
+            schema:
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: '#/components/responses/200'
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/access-control/query:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: Either SPARQL v1.1. RDF (Federated) Query or GraphQL (Federated) Query from multiple data sources
+      operationId: access-query
+      tags:
+        - access-control
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: graphURIList
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/GraphListType'
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+      security: []
+      requestBody:
+        description: "More specifics about what RDF data to delete using SPARQL 'DELETE DATA' statement. Note the Client can only delete the original Graph data sources being uploaded by the same User ID and Graph name. These graphs uploaded by others will not be deleted by the request as the protection by the ownership of those other graphs."
+        content:
+          application/text:
+            schema:
+              description: Either GraphQL (Federated) Query Statement or SPARQL v1.1 Query statement as the body content. If the body content is empty, then the entire RDF Graph (parameter graphURI) will be used to query against the specific RDF graph in the Graph Exchange Server. Only the users with authorized access API token can the operation.
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: '#/components/responses/200'
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/access-control/update:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: update RDF graph data source
+      operationId: access-update
+      tags:
+        - access-control
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: graphURI
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 128
+            example: "<http://uco.example.org/bookStore>"
+            default: "<http://uco.example.org/bookstore>"
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+      security: []
+      requestBody:
+        description: "SPARQL v1.1 (see W3C SPARQL v1.1. Update Specification - https://www.w3.org/TR/sparql11-update/ ) as the specification syntax of the payload SPARQL Update statements."
+        content:
+          application/text:
+            schema:
+              #description: the SPARQL v1.1 UPDATE statement as the body content
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: "#/components/responses/200Query"
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/access-control/delete:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: Delete RDF graph data source
+      operationId: access-delete
+      tags:
+        - access-control
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: graphURI
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 128
+            example: "<http://uco.example.org/bookStore>"
+            default: "<http://uco.example.org/bookstore>"
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+      security: []
+      requestBody:
+        description: "More specifics about what RDF data to delete using SPARQL 'DELETE DATA' statement. Note the Client can only delete the original Graph data sources being uploaded by the same User ID and Graph name. These graphs uploaded by others will not be deleted by the request as the protection by the ownership of those other graphs."
+        content:
+          application/text:
+            schema:
+              #description: the SPARQL v1.1 UPDATE statement as the body content. If the body content is empty, then the entire RDF Graph (parameter graphURI) will be deleted from the RDF Graph Exchange Server. Only the creator (owner) the RDF Graph can perform /delete operation.
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: '#/components/responses/200'
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/graph/create:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: upload and create a new RDF graph upload RDF graph data source
+      operationId: create-graph
+      tags:
+        - graph
+      security: []
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: graphURI
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 128
+            example: "<http://uco.example.org/bookStore>"
+            default: "<http://uco.example.org/bookstore>"
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: rdfFormat
+          in: query
+          required: true
+          description: "the semantic graph format types, e.g., Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX. Note that parsing JSON-LD mostly is much more time-consuming and expensive in computing than other formats. This API supports other data formats, e.g., N3, RDF/XML, and TURTLE"
+          schema:
+            type: string
+            nullable: false
+            enum: [JSON-LD, TRIG, RDF/XML, N3, TURTLE]
+            example: JSON-LD
+            default: JSON-LD
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+      requestBody:
+        description: upload RDF data source
+        content:
+          application/text:
+            schema:
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: '#/components/responses/200'
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/graph/query:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: Either SPARQL v1.1. RDF (Federated) Query or GraphQL (Federated) Query from multiple data sources
+      operationId: queryGraph
+      tags:
+        - graph
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890"
+        - name: graphList
+          in: query
+          required: false
+          description: 'Either SPARQL or GraphQL query is supported'
+          schema:
+            $ref: '#/components/schemas/GraphListType'
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: queryType
+          in: query
+          required: false
+          description: 'Either SPARQL or GraphQL query is supported'
+          schema:
+            type: string
+            enum: [SPARQL, GraphQL]
+            example: SPARQL
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+      security: []
+      requestBody:
+        description: "More specifics about what RDF data to delete using SPARQL 'DELETE DATA' statement. Note the Client can only delete the original Graph data sources being uploaded by the same User ID and Graph name. These graphs uploaded by others will not be deleted by the request as the protection by the ownership of those other graphs."
+        content:
+          application/text:
+            schema:
+              description: Either GraphQL (Federated) Query Statement or SPARQL v1.1 Query statement as the body content. If the body content is empty, then the entire RDF Graph (parameter graphURI) will be used to query against the specific RDF graph in the Graph Exchange Server. Only the users with authorized access API token can the operation.
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: '#/components/responses/200'
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/graph/update:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: update RDF graph data source
+      operationId: updateGraph
+      tags:
+        - graph
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: graphURI
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 128
+            example: "<http://uco.example.org/bookStore>"
+            default: "<http://uco.example.org/bookstore>"
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+      security: []
+      requestBody:
+        description: "SPARQL v1.1 (see W3C SPARQL v1.1. Update Specification - https://www.w3.org/TR/sparql11-update/ ) as the specification syntax of the payload SPARQL Update statements."
+        content:
+          application/text:
+            schema:
+              #description: the SPARQL v1.1 UPDATE statement as the body content
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: "#/components/responses/200Query"
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/graph/delete:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: Delete RDF graph data source
+      operationId: deleteGraph
+      tags:
+        - graph
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: graphURI
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 128
+            example: "<http://uco.example.org/bookStore>"
+            default: "<http://uco.example.org/bookstore>"
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+      security: []
+      requestBody:
+        description: "More specifics about what RDF data to delete using SPARQL 'DELETE DATA' statement. Note the Client can only delete the original Graph data sources being uploaded by the same User ID and Graph name. These graphs uploaded by others will not be deleted by the request as the protection by the ownership of those other graphs."
+        content:
+          application/text:
+            schema:
+              #description: the SPARQL v1.1 UPDATE statement as the body content. If the body content is empty, then the entire RDF Graph (parameter graphURI) will be deleted from the RDF Graph Exchange Server. Only the creator (owner) the RDF Graph can perform /delete operation.
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: '#/components/responses/200'
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/graph/validate:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: validate RDF graph data source for compliance
+      operationId: validateGraph
+      tags:
+        - graph
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: graphURI
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 128
+            example: "<http://uco.example.org/bookStore>"
+            default: "<http://uco.example.org/bookstore>"
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "UCO-cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+        - name: standardURI
+          in: query
+          required: false
+          description: "the client applications' compliance-standard URI for this batch of RDF data to be uploaded and validated for compliance. For example, the URI of UCO SHACL shape Turtle file."
+          schema:
+            type: string
+            example: "https://shacl.UCO.git.io/v0.7"
+            default: "unknown"
+        - name: rdfFormat
+          in: query
+          required: true
+          description: "the client applications' type of this batch of RDF data to be uploaded and validated for compliance, e.g., Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX. Note that parsing JSON-LD mostly is much more time-consuming and expensive in computing than other formats. This API supports other data formats, e.g., N3, RDF/XML, and TURTLE"
+          schema:
+            $ref: "#/components/schemas/RDFDataFormatType"
+      security: []
+      requestBody:
+        description: "SPARQL v1.1 (see W3C SPARQL v1.1. Update Specification - https://www.w3.org/TR/sparql11-update/ ) as the specification syntax of the payload SPARQL Update statements."
+        content:
+          text/plain:
+            schema:
+              #description: the RDF dataset as the body content
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: "#/components/responses/200"
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/graph/convert:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: convert RDF graph data source in-between RDF Format
+      operationId: convertGraph
+      tags:
+        - graph
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: rdfSourceFormat
+          in: query
+          required: true
+          description: "the source dataset data format type, e.g., Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX."
+          schema:
+            $ref: "#/components/schemas/RDFDataFormatType"
+        - name: rdfOutputFormat
+          in: query
+          required: true
+          description: "the output dataset data format type, e.g., Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX."
+          schema:
+            $ref: "#/components/schemas/RDFDataFormatType"
+        - name: sourceGraphName
+          in: query
+          required: true
+          description: "the sourece Graph Name for generating the converted RDF Graph. If null or emply, then the entire DEFAULT RDF tuples will be used to generate the target named-Graph as defined in 'outputGraphname'. If the 'outputGraphName' is null or empty, then no named-Graph name will be used for the converted RDF (default) graph."
+          schema:
+            type: string
+            maxLength: 128
+            nullable: true
+            default: ""
+            example: "http://UCO-CASE-EU-CC-GRAPH-input"
+        - name: outputGraphName
+          in: query
+          required: true
+          description: "the new Graph Name for rdfOutput. If the 'outputGraphName' is null or empty, then no named-Graph name will be used for the converted RDF graph and 'default' graph will be used. If both sourceGraphName and outputGraphName are null or empty, then the entire source default graph will be used as input for conversion and the output will have no named-graph."
+          schema:
+            type: string
+            maxLength: 128
+            nullable: true
+            default: ""
+            example: "http://UCO-CASE-EU-CC-GRPAH-012345" 
+        - name: query
+          in: query
+          description: "SPARQL Query expression (max 1536). Note the common lowest limit for the entrie url is 2048 as the limit. The query SPARQL string must be url-encoded. The example below is not url-encoded to show the un-encoded SPARQL content. If the query is provided with named-graph(s), then these named-graph will be used and ignore the 'sourceGraphName' parameter"
+          required: true
+          schema:
+            type: string
+            maxLength: 1536
+            nullable: true
+            default: ""
+            example: "
+              SELECT *
+              FROM DISTINCT <http://example/bookStore>
+              WHERE 
+                {
+                  ?s ?p ?o
+                }
+                "
+          
+      security: []
+      requestBody:
+        description: "SPARQL v1.1 (see W3C SPARQL v1.1. Update Specification - https://www.w3.org/TR/sparql11-update/ ) as the specification syntax of the payload SPARQL Update statements."
+        content:
+          text/plain:
+            schema:
+              #description: the RDF dataset as the body content
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: "#/components/responses/200"
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /api/graph/shacl-generate:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: "Build SHACL shapes from an ontology document, supported formats: Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX."
+      operationId: shacl-generate
+      tags:
+        - graph
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: rdfSourceFormat
+          in: query
+          required: true
+          description: "the source dataset data format type, e.g., Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX."
+          schema:
+            $ref: "#/components/schemas/RDFDataFormatType"
+        - name: shaclOutputFormat
+          in: query
+          required: true
+          description: "the output dataset data format type, e.g., Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX."
+          schema:
+            $ref: "#/components/schemas/RDFDataFormatType"
+        - name: sourceGraphName
+          in: query
+          required: true
+          description: "the sourece Graph Name for generating the converted RDF Graph. If null or emply, then the entire DEFAULT RDF tuples will be used to generate the target named-Graph as defined in 'outputGraphname'. If the 'outputGraphName' is null or empty, then no named-Graph name will be used for the converted RDF (default) graph."
+          schema:
+            type: string
+            maxLength: 128
+            nullable: true
+            default: ""
+            example: "http://UCO-CASE-EU-CC-GRAPH-input"
+        - name: outputGraphName
+          in: query
+          required: true
+          description: "the new Graph Name for rdfOutput. If the 'outputGraphName' is null or empty, then no named-Graph name will be used for the converted RDF graph and 'default' graph will be used. If both sourceGraphName and outputGraphName are null or empty, then the entire source default graph will be used as input for conversion and the output will have no named-graph."
+          schema:
+            type: string
+            maxLength: 128
+            nullable: true
+            default: ""
+            example: "http://UCO-CASE-EU-CC-GRPAH-012345" 
+
+      security: []
+      requestBody:
+        description: "SPARQL v1.1 (see W3C SPARQL v1.1. Update Specification - https://www.w3.org/TR/sparql11-update/ ) as the specification syntax of the payload SPARQL Update statements."
+        content:
+          text/plain:
+            schema:
+              #description: the RDF dataset as the body content
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: "#/components/responses/200"
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /graphql:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: 'GraphQL REST API'
+      operationId: graphql
+      tags:
+        - graphql
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890"
+        - name: graphList
+          in: query
+          required: false
+          description: 'Either SPARQL or GraphQL query is supported'
+          schema:
+            $ref: '#/components/schemas/GraphListType'
+        - name: organizationID
+          in: query
+          required: false
+          description: "the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "organizationID-unknown"
+            example: "uco-eu-cyber-123"
+        - name: reference
+          in: query
+          required: false
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          schema:
+            type: string
+            example: "cs0123-b45678-2021-11-25-001"
+            default: "n/a"
+      security: []
+      requestBody:
+        description: "GraphQL query."
+        content:
+          application/text:
+            schema:
+              description: GraphQL (Federated) Query Statement as the body content. If the body content is empty, then the entire RDF Graph (parameter graphURI) will be used to query against the specific RDF graph in the Graph Exchange Server. Only the users with authorized access API token can the operation.
+      responses:
+        200:
+          $ref: '#/components/responses/200'
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /graphql/schema/from-rdf:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: 'generate GraphQL Schema (https://graphql.org/learn/schema/) using input RDF Ontology'
+      operationId: graphql-schema-from-RDF
+      tags:
+        - graphql
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: sourceGraphName
+          in: query
+          required: false
+          description: "the sourece Graph Name for generating the converted RDF Graph. If null or emply, then the entire DEFAULT RDF tuples will be used to generate the target named-Graph as defined in 'outputGraphname'. If the 'outputGraphName' is null or empty, then no named-Graph name will be used for the converted RDF (default) graph."
+          schema:
+            type: string
+            maxLength: 128
+            nullable: true
+            default: ""
+            example: "http://UCO-CASE-EU-CC-GRAPH-input"
+        - name: outputGraphName
+          in: query
+          required: true
+          description: "the new Graph Name for generating GraphQL schema. If the 'outputGraphName' is null or empty, then no named-Graph name will be used for the converted RDF graph and 'default' graph will be used. If both sourceGraphName and outputGraphName are null or empty, then the entire source default graph will be used as input for conversion and the output will have no named-graph."
+          schema:
+            type: string
+            maxLength: 128
+            nullable: true
+            default: ""
+            example: "http://UCO-CASE-EU-CC-GRPAH-012345" 
+
+      security: []
+      requestBody:
+        description: "RDF ontology dataset in supported formats, e.g. Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX."
+        content:
+          text/plain:
+            schema:
+              #description: the RDF dataset as the body content
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: "#/components/responses/200"
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+  /graphql/schema/from-rdf-uri:
+    parameters:
+      - name: access_token
+        in: query
+        required: true
+        description: "Authorization access token string"
+        schema:
+          $ref: "#/components/schemas/AccessToken"
+    post:
+      summary: 'generate GraphQL Schema (https://graphql.org/learn/schema/) using input RDF Ontology in remote URI'
+      operationId: graphql-schema-from-RDF-uri
+      tags:
+        - graphql
+      parameters:
+        - name: userID
+          in: query
+          required: true
+          description: "the ID of the organization of the client application"
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 64
+            default: "userUUID-unknown"
+            example: "UCO-CASE-EU-CC-1234567890" 
+        - name: sourceGraphName
+          in: query
+          required: false
+          description: "the sourece Graph Name for generating the converted RDF Graph. If null or emply, then the entire DEFAULT RDF tuples will be used to generate the target named-Graph as defined in 'outputGraphname'. If the 'outputGraphName' is null or empty, then no named-Graph name will be used for the converted RDF (default) graph."
+          schema:
+            type: string
+            maxLength: 128
+            nullable: true
+            default: ""
+            example: "http://UCO-CASE-EU-CC-GRAPH-input"
+        - name: sourceURI
+          in: query
+          required: true
+          description: "the source RDF dataset URI, e.g., https://student.university-rdf-example.org."
+          schema:
+            type: string
+            maxLength: 256
+            default: ""
+            example: "https://university-rdf-example.org/student.ttl"
+        - name: outputGraphName
+          in: query
+          required: false
+          description: "the new Graph Name for generating GraphQL schema. If the 'outputGraphName' is null or empty, then no named-Graph name will be used for the converted RDF graph and 'default' graph will be used. If both sourceGraphName and outputGraphName are null or empty, then the entire source default graph will be used as input for conversion and the output will have no named-graph."
+          schema:
+            type: string
+            maxLength: 128
+            nullable: true
+            default: ""
+            example: "http://UCO-CASE-EU-CC-GRPAH-012345" 
+
+      security: []
+      requestBody:
+        description: "RDF ontology dataset in supported formats, e.g. Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX."
+        content:
+          text/plain:
+            schema:
+              #description: the RDF dataset as the body content
+              $ref: '#/components/schemas/SourceDataType'
+      responses:
+        200:
+          $ref: "#/components/responses/200"
+        400:
+          $ref: "#/components/responses/400Error"
+        403:
+          $ref: "#/components/responses/403Error"
+        404:
+          $ref: "#/components/responses/404Error"
+        500:
+          $ref: "#/components/responses/500Error"
+
+components: 
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    BearerAuth:
+      type: http
+      scheme: bearer
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    OpenID:
+      type: openIdConnect
+      openIdConnectUrl: https://example.com/.well-known/openid-configuration
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://example.com/oauth/authorize
+          tokenUrl: https://example.com/oauth/token
+          scopes:
+            read: Grants read access
+            write: Grants write access
+            admin: Grants access to admin operations
+            
+  schemas:
+    AccessToken:
+      description: "Authorization Access Token in OAuth 2.0 and there are a few different format. This schema assumes the existence of Authorization Access Server such as OAuth 2.0 Servers besides the Server so that the Clients / Applications / Users can request Access Token (short-lived or long-lived) to access this the API services. And, the API Interface here will not prescribe the formats. One of the common formats for Access Token is Json Web Token (JWT). A JWT is represented as a sequence of base64url encoded values that are separated by period characters with three parts as <Header>.<Payload>.<Signature> - see the example value. And, the Interface will not prescribe the specific format here."
+      type: string
+      example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vdHJ1c3R5YXBwLmNvbS8iLCJleHAiOjEzMDA4MTkzODAsInN1YiI6InVzZXJzLzg5ODM0NjIiLCJzY29wZSI6InNlbGYgYXBpL2J1eSJ9.43DXvhrwMGeLLlP4P4izjgsBB2yrpo82oiUPhADakLs"
+    AccessPermissionType:
+      description: "the choice of the RDF Graph access permission: READ-ONLY, WRITE, and READ-WRITE. The WRITE permission will allow a user or group to 'Add, Update, Delete' RDF resources in the RDF Graph."
+      type: string
+      nullable: false
+      enum: [READ-ONLY, WRITE, READ-WRITE]
+      example: READ-ONLY
+      default: READ-ONLY
+    AccessControlType:
+      description: "Access Control object record."
+      required:
+        - userUUID
+      properties:
+        userUUID:
+          description: the UUID (v4.0) of an organization to be generated by the RDF Graph Exchange Server.
+          type: string
+          maxLength: 64
+          nullable: true
+          default: "None"
+          example: "6ff13385-070b-46d0-9180-c91b93d0a81b"
+        graphUUID:
+          description: the UUID (v4.0) of an RDF Graph to be generated by the RDF Graph Exchange Server.
+          type: string
+          maxLength: 64
+          nullable: true
+          default: "None"
+          example: "23ec9730-500e-460c-8cda-9e39e7b4bf05"
+        accessRight:
+          description: the GraphAccessGroupType.
+          $ref: "#/components/schemas/GraphAccessGroupType"
+    AccessControlTypeList:
+      description: "a list of AccessControlType object"
+      type: "array"
+      items:
+        $ref: '#/components/schemas/AccessControlType'
+        
+    Errors:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+
+    UserType:
+      description: "User information"
+      required:
+        - userID
+      properties:
+        userUUID:
+          description: the UUID (v4.0) of an organization to be generated by the RDF Graph Exchange Server.
+          type: string
+          maxLength: 64
+          nullable: true
+          default: "abcdabcd-0000-1234-1234-abcdefabcdef"
+          example: "6ff13385-070b-46d0-9180-c91b93d0a81b"
+        userID:
+          description: a non-UUID (short) organization UID and it could be the same as user's email.
+          type: string
+          nullable: false
+          default: "uco-user-0123456"
+          example: "uco-user-0123456"
+        userFirstName:
+          type: string
+          nullable: true
+          example: "Jane"
+        userLastName:
+          type: string
+          nullable: true
+          example: "Smith"
+        email:
+          type: string
+          nullable: true
+          example: "user12345678@uco.acme.org"
+        affiliatedOrganization:
+          $ref: "#/components/schemas/OrganizationType"
+        dateStart:
+          description: "starting date-time the user allowed to access the RDF Graph Exchange Server"
+          type: string
+          format: date-time
+          example: "2021-1-18T19:23:38.040Z"
+        dateEnd:
+          description: "expiration date-time the user allowed to access the RDF Graph Exchange Server"
+          type: string
+          format: date-time
+          example: "2022-11-18T19:23:38.040Z"
+        graphAccessControlList:
+          $ref: '#/components/schemas/GraphAccessControlListType'
+
+    UserListType:
+      description: "a list of Users"
+      type: "array"
+      items:
+        $ref: '#/components/schemas/UserType'
+
+    OrganizationType:
+      description: "user's Organization information"
+      required:
+        - organizationID
+      properties:
+        organizationUUID:
+          description: the UUID (v4.0) of an organization to be generated by the RDF Graph Exchange Server.
+          type: string
+          maxLength: 64
+          nullable: true
+          default: "abcdabcd-1234-1234-1234-abcdefabcdef"
+          example: "6ff13385-070b-46d0-9180-c91b93d0a81b"      
+        organizationID:
+          description: a non-UUID ()short) organization UID
+          type: string
+          minLength: 6
+          maxLength: 64
+          nullable: false
+          example: "US-CYBER-ORG-01234"
+          default: "organizationID-unknown"
+        organizationName:
+          type: string
+          minLength: 6
+          maxLength: 64
+          nullable: true
+          default: "organizationName-unknown"
+          example: "ACME Ontology Inc."
+        organizationWeb:
+          type: string
+          maxLength: 128
+          nullable: true
+          default: "organizationWeb-unknown"
+          example: "https://github.com/ucoProject/UCO"
+    OrganizationListType:
+      description: "a list of Organizations"
+      type: "array"
+      items:
+        $ref: '#/components/schemas/OrganizationType'
+
+    GroupType:
+      description: "user's group / role ID and name"
+      required:
+        - groupID
+      properties:
+        groupID:
+          type: string
+          minLength: 6
+          maxLength: 64
+          nullable: false
+          default: "groupID-unknown"
+          example: "uco-eu-cyber-123"
+        groupName:
+          type: string
+          maxLength: 64
+          default: "groupName-unknown"
+          example: "EU Cyber Ontology Group"
+        remark:
+          type: string
+          maxLength: 64
+          nullable: true
+          example: "The EU Cyber Ontology Group - studying the adoption of RDF Graph in cyber domain."
+
+    GroupListType:
+      description: "a list of Groups"
+      type: "array"
+      items:
+        $ref: "#/components/schemas/GroupType"
+    
+    GraphType:
+      description: the RDF Graph that the user uploaded/created
+      required:
+        - graphURI
+        - owner
+      properties:
+        organizationUUID:
+          description: the UUID (v4.0) of an organization to be generated by the RDF Graph Exchange Server.
+          type: string
+          maxLength: 64
+          nullable: true
+          default: "abcdabcd-1234-1234-1234-abcdefabcdef"
+          example: "6ff13385-070b-46d0-9180-c91b93d0a81b"
+        graphURI:
+          description: the URI of the RDF Graph data sources
+          type: string
+          minLength: 6
+          maxLength: 128
+          example: "<http://uco.example.org/bookStore>"
+          default: "<http://uco.example.org/bookstore>"
+        sharable:
+          description: whether to allow the RDF graph to be shared other than the OWNER (the user who uploaded/created the RDF Graph)
+          type: boolean
+          default: false
+        owner:
+          #description: the user who uploaded/created the RDF graph
+          $ref: "#/components/schemas/UserType"
+        organization:
+          #description: the user's organization or the organization owning this RDF Graph data sources
+           $ref: "#/components/schemas/OrganizationType"
+        dateCreated:
+          description: date the RDF graph being uploaded/created by the user. Note this will auto-filled by the RDF Graph Exchange Server if not provided
+          type: string
+          format: date-time
+          example: "2021-11-14T19:23:38.040Z"
+        dateExpired:
+          description: date the RDF graph will be expired and removed automatically or not available for sharing. But, the owner can still access with RUD (Query, Update, Delete) operations. Note this will auto-default with, e.g., 90 days to expire, if not provided by the user.
+          type: string
+          format: date-time
+          example: "2022-11-14T19:23:38.040Z"
+
+    GraphListType:
+      description: "Graph list"
+      type: "array"
+      items:
+        $ref: "#/components/schemas/GraphType"
+      example:
+        ["<http://uco.example.org/bookStore>", "<http://uco.example.org/student>"]
+
+    GraphAccessGroupType:
+      description: the access control object for a RDF Graph resource as the ternery relationship of the access control permission, the RDF Graph (URI), and the specific Group.
+      required:
+        - graphURI
+        - accessGroup
+        - accessPermission
+      properties:
+        graphURI:
+          description: the URI of the RDF Graph data sources
+          type: string
+          minLength: 6
+          maxLength: 128
+          example: "<http://uco.example.org/bookStore>"
+          default: "<http://uco.example.org/bookstore>"
+        accessGroup:
+          $ref: "#/components/schemas/GroupType"
+        accessPermission:
+          $ref: "#/components/schemas/AccessPermissionType"
+
+    GraphAccessControlListType:
+      description: "the list of GraphAccessControl objects"
+      type: "array"
+      items:
+        $ref: "#/components/schemas/GraphAccessGroupType"          
+
+    Identifier:
+      description: "Unique Identifier (UUID v4) assigned by the Server"
+      type: string
+      nullable: true
+      maxLength: 64
+      default: "abcdabcd-1111-1234-1234-abcdefabcdef"
+      example: "09099565-dca5-4b95-99ae-a66216108614"
+    IdentifierList:
+      type: "array"
+      items:
+        $ref: "#/components/schemas/Identifier"
+    Results:
+      description: "JSON as Query results"
+      type: string
+      example: "{}"
+    SessionTokenType:
+      description: "Query's Session Token to support the needs that the Clients / Applications / Users can request the Server Systems to continue to use the previous Query results for delivering more pages of Query Results if the given session linked by session token still existing in the Server System. Otherwise, session token will be ignored and New Query will be assumed. The life span of Query Session memorized by the Server Systems is detenmined by the specific implementation or mission needs. It is up to the Server to determine the format of the contents of session token, the example below is just example only. Its charaters can be alpha-numerical and punctuation but non-visible characters will be not allowed. It is suggested to be default as 30 minutes."
+      type: string
+      example: "Q748924820-2038-01-19-03:14:07.999999"
+    SourceDataType:
+      type: string
+      example: "
+        @prefix dc: <http://purl.org/dc/elements/1.1/> .
+        @prefix ns: <http://example.org/ns#> .
+        <http://example/book2> ns:price 42 .
+        <http://example/book2> dc:title \"David Copperfield\" .
+        <http://example/book2> dc:creator \"Edmund Wells\" ."
+    RDFDataFormatType:
+        type: string
+        enum: [Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX]
+        example: JSON-LD
+        default: JSON-LD
+    UploadObjectType:
+      required:
+        - id
+        - organization
+        - graphURI
+        - rdfFormat
+      properties:
+        id:
+          description: "the ID of the organization of the client application"
+          type: string
+          example: "UCO-CASE-EU-CC-20ed6a56-9ddf-415f-b59b-7265a62c4ed7"
+          minLength: 6
+          maxLength: 64
+          default: "unknown"
+        organization:
+          description: "the organization of the client application"
+          type: string
+          example: "The RDF Graph Example Organization LLC."
+          minLength: 6
+          maxLength: 128
+          default: "unknown"
+        reference:
+          description: "the client applications' reference to this batch of RDF data to be uploaded and it is not used by the Server."
+          type: string
+          maxLength: 64
+          example: "cs0123-b45678-2021-11-25-001"
+          default: ""
+        graphURI:
+          description: the URI of the RDF Graph data sources
+          type: string
+          minLength: 6
+          maxLength: 128
+          example: "<http://uco.example.org/bookStore>"
+          default: "<http://uco.example.org/bookstore>"
+        rdfFormat:
+          description: "the client applications' type of this batch of RDF data to be uploaded and validated for compliance, e.g., Turtle, RDF/XML, N-Triples, JSON-LD, RDF/JSON, TriG, N-Quads, TriX. Note that parsing JSON-LD mostly is much more time-consuming and expensive in computing than other formats. This API supports other data formats, e.g., N3, RDF/XML, and TURTLE"
+          items:
+            $ref: "#/components/schemas/RDFDataFormatType"
+    UUID:
+      description: UUID as defined by RFC4122
+      type: string
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      # the regex above limits the length;
+      # however, some tools might require explicit settings:
+      minLength: 36
+      maxLength: 36
+      
+  responses:
+    200Response:
+      description: "successful operation"
+      headers:
+        x-next:
+          description: "A link to the next page of responses if the results is too large (per the Server implementation specifically)."
+          schema:
+            type: string
+      content:
+        application/json:    
+          schema:
+            $ref: '#/components/schemas/Results'
+  
+    200ResponseGraphList:
+      description: "successful operation"
+      headers:
+        x-next:
+          description: "A link to the next page of responses if the results is too large (per the Server implementation specifically)."
+          schema:
+            type: string
+      content:
+        application/json:    
+          schema:
+            $ref: '#/components/schemas/GraphListType'
+    200Query:
+      description: "successful operation"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Results"
+    200:
+      description: "successful operation"
+      content:
+        application/text:
+          schema:
+            description: "Results in text format"
+            type: string
+            default: "{}"
+    400:
+      description: "Bad request, exact description of error and any successful results to be in content"
+      content:
+        application/text:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    403:
+      description: "No permission to access entity"
+      content:
+        application/text:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    404:
+      description: "Specified object(s) not found"
+      content:
+        application/text:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    500:
+      description: "Server was not able to process request"
+      content:
+        application/text:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    400Error:
+      description: "Bad request, exact description of error and any successful results to be in content"
+      content:
+        application/text:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    403Error:
+      description: "No permission to access object(s)"
+      content:
+        application/text:
+          schema: 
+            $ref: "#/components/schemas/Errors"
+    404Error:
+      description: "Specified object(s) not found"
+      content:
+        application/text:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    500Error:
+      description: "Server was not able to process request"
+      content:
+        application/text:
+          schema:
+            $ref: "#/components/schemas/Errors"
